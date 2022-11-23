@@ -1,0 +1,52 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+strategy:
+  matrix:
+    Python310:
+      python.version: '3.10'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    python -m pip install --upgrade pip
+    python -m pip install pipenv
+    python -m pipenv install --skip-lock
+    python setup.py sdist bdist_wheel
+  displayName: 'Install dependencies'
+
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+  inputs:
+    TargetFolder: '$(build.artifactstagingdirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/dist'
+    ArtifactName: 'CoxDLT'
+    
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'ProdSP'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az upgrade --yes -y --all
+      l=`curl ifconfig.me`
+      az storage account network-rule add --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
+      sleep 120
+      az storage blob upload-batch --destination deployments/deployments/pypi/dev/CoxDLT --source $(Build.ArtifactStagingDirectory)/dist/ --account-name coxautodsdeployments --auth-mode login --overwrite true --debug
+      sleep 120
+      az storage account network-rule remove --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
