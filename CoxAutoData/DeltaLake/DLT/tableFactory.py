@@ -77,7 +77,7 @@ class deltaTables():
         self.importModule(para['modules'])
         sourceTablesName = para['sourceTableName']
         transform = createTransform(para['transformName'])
-        para = {arguments['sourceTableName'] : self.CoxDLT.read(sourceTablesName)}
+        para = {sourceTablesName : self.CoxDLT.read(sourceTablesName)}
         return self.__generateTable(para['tableName'], transform.transform ,para)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
