@@ -1,8 +1,10 @@
 
 from typing import Any, Callable, Dict
+
 from pyspark.sql import dataframe
-from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
+
 from CoxAutoData.DeltaLake.DLT import loader
+from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
 
 """ using plug-in architecture to seprated tranformation and pipeline"""
 
@@ -66,19 +68,21 @@ class deltaTables():
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
         
         para = self.praseArguments(arguments)
-        return self.__generateTable(para['tableName'],
-            self.CoxSpark.read.format(para['fileFormat']).load,
-            para['sourceTableName'])
+        
+        sourceTablesName ={ "path":para['sourceTableName']}
+        return self.__generateTable(lambda x:x, para['tableName'],
+            self.CoxSpark.read.format(para['fileFormat']).load,sourceTablesName)
+            
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> dataframe:
         
         para = self.praseArguments(arguments)
         
         self.importModule(para['modules'])
-        sourceTablesName = para['sourceTableName']
+        sourceTablesName = {para['sourceTableName']:para['sourceTableName']}
         transform = createTransform(para['transformName'])
-        para = {sourceTablesName : self.CoxDLT.read(sourceTablesName)}
-        return self.__generateTable(para['tableName'], transform.transform ,para)
+        #para = {sourceTablesName : self.CoxDLT.read(sourceTablesName)}
+        return self.__generateTable(self.CoxDLT.read, para['tableName'], transform.transform ,sourceTablesName)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
 
@@ -87,13 +91,14 @@ class deltaTables():
         self.importModule(para['modules'])
         sourceTablesName = para['sourceTableName']
         transform = createTransform(para['transformName'])
-        sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
-        return self.__generateTable(para['tableName'], transform.transform ,sourceTables)
+        #sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
+        return self.__generateTable(self.CoxDLT.read, para['tableName'], transform.transform ,sourceTablesName)
 
-    def __generateTable(self, tableName, transform, sourceTables) -> dataframe:
+    def __generateTable(self, loader, tableName, transform, sourceTablesName) -> dataframe:
         @self.CoxDLT.table(
             name = tableName
         )
         def generate():
+            sourceTables = {k: loader(v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
     
