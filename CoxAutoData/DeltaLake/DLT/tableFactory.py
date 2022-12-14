@@ -67,7 +67,7 @@ class deltaTables():
         
         para = self.praseArguments(arguments)
         return self.__generateTable(para['tableName'],
-            self.CoxSpark.read.format(para['fileFormat']).load(),
+            self.CoxSpark.read.format(para['fileFormat']).load,
             para['sourceTableName'])
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> dataframe:
