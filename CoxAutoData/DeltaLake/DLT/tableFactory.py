@@ -139,7 +139,7 @@ class deltaTables():
         #     name = tableName
         # )
         def generate():
-            sourceTables = {k: loader(v) for k, v in sourceTablesName.items()}
+            sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
         executor = self.__generateDQFunc(DQRules)(generate)
 
