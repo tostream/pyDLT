@@ -49,3 +49,10 @@ steps:
       az storage blob upload-batch --destination deployments/deployments/pypi/dev/CoxDLT --source $(Build.ArtifactStagingDirectory)/dist/ --account-name coxautodsdeployments --auth-mode login --overwrite true --debug
       sleep 120
       az storage account network-rule remove --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
+
+- task: TwineAuthenticate@1
+  inputs:
+    artifactFeed: 'python-cox-data-dev'
+- script: |
+    python -m twine upload -r python-cox-data-dev --config-file $(PYPIRC_PATH) dist/*.whl
+  displayName: 'Upload to artifact'
