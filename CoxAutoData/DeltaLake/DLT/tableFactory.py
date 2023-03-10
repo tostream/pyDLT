@@ -61,6 +61,7 @@ class deltaTables():
         res['modules'] = arguments.pop('modules',None)
         res['parameter'] = arguments.pop('parameter',None)
         res['instantiation'] = arguments.pop('instantiation',None)
+        res['dataQuality'] = arguments.pop('dataQuality',None)
         return res
 
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
@@ -76,16 +77,24 @@ class deltaTables():
         loader = createExternalSource(arguments)
         transform = self.CoxSpark.createDataFrame
 
-        return self.__generateTable(loader, arguments['tableName'],
-            transform,loaderPara)
+        return self.__generateTable(
+            loader,
+            arguments['tableName'],
+            transform,
+            loaderPara,
+            arguments['dataQuality'],)
 
     def getStandRaw(self, arguments: Dict[str, Any]) -> dataframe:
         
         sourceTablesName ={ "path":arguments['sourceTableName']}
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
 
-        return self.__generateTable(lambda x:x, arguments['tableName'],
-            transform,sourceTablesName)
+        return self.__generateTable(
+            lambda x:x,
+            arguments['tableName'],
+            transform,
+            sourceTablesName,
+            arguments['dataQuality'],)
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> dataframe:
         
@@ -95,7 +104,12 @@ class deltaTables():
         sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
         transform = createTransform(args['transformName'])
         
-        return self.__generateTable(self.CoxDLT.read, args['tableName'], transform ,sourceTablesName)
+        return self.__generateTable(
+            self.CoxDLT.read,
+            args['tableName'],
+            transform,
+            sourceTablesName,
+            args['dataQuality'],)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
 
@@ -105,13 +119,35 @@ class deltaTables():
         sourceTablesName = args['sourceTableName']
         transform = createTransform(args['transformName'])
         
-        return self.__generateTable(self.CoxDLT.read, args['tableName'], transform.transform ,sourceTablesName)
+        return self.__generateTable(
+            self.CoxDLT.read, 
+            args['tableName'],
+            transform.transform,
+            sourceTablesName,
+            args['dataQuality'],)
 
-    def __generateTable(self, loader, tableName, transform, sourceTablesName) -> dataframe:
-        @self.CoxDLT.table(
-            name = tableName
-        )
+    def __generateTable(
+            self,
+            loader,
+            tableName,
+            transform, 
+            sourceTablesName, 
+            DQRules: Dict[str,Any] = {}
+        ):
+        
+        # @self.CoxDLT.table(
+        #     name = tableName
+        # )
         def generate():
             sourceTables = {k: loader(v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
-    
+        executor = self.__generateDQFunc(DQRules)(generate)
+
+        return self.CoxDLT.table(name=tableName)(executor)
+
+    def __generateDQFunc(self,rules: Dict[str,Any]) -> Any:
+        for func, rule in rules.items():
+            DQfunc = getattr(self.CoxDLT, func)
+            return DQfunc(*rule)
+        return lambda x:x
+
