@@ -59,7 +59,7 @@ class deltaTables():
         res['sourceTableName'] = arguments.pop('sourceTableName',None)
         res['transformName'] = arguments.pop('transform',None)
         res['modules'] = arguments.pop('modules',None)
-        res['parameter'] = arguments.pop('parameter',None)
+        res['parameter'] = arguments.pop('parameter',{})
         res['instantiation'] = arguments.pop('instantiation',None)
         res['dataQuality'] = arguments.pop('dataQuality',{})
         return res
