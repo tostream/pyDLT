@@ -61,7 +61,7 @@ class deltaTables():
         res['modules'] = arguments.pop('modules',None)
         res['parameter'] = arguments.pop('parameter',None)
         res['instantiation'] = arguments.pop('instantiation',None)
-        res['dataQuality'] = arguments.pop('dataQuality',None)
+        res['dataQuality'] = arguments.pop('dataQuality',{})
         return res
 
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
