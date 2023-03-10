@@ -33,7 +33,7 @@ def createExternalSource(arguments: Dict[str, Any]) -> Callable:
         creator_func = table_creation_funcs[transform]
     except KeyError:
         raise ValueError(f"unknown character type {transform!r}") from None
-    return creator_func(initPara)
+    return creator_func(**initPara)
 
 def checkPackageExist(key: str) -> bool:
     """verify a package has been registered"""
