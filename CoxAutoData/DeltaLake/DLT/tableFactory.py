@@ -27,7 +27,7 @@ def createTransform(arguments: Dict[str, Any]) -> deltaLiveTable:
 def createExternalSource(arguments: Dict[str, Any]) -> Callable:
     """get the python package retrieve external data"""
 
-    transform = arguments.pop("transform")
+    transform = arguments.pop("transformName")
     initPara = arguments.pop("instantiation")
     try:
         creator_func = table_creation_funcs[transform]
