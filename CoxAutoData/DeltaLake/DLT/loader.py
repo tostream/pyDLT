@@ -5,7 +5,7 @@ class ModuleInterface:
 
     @staticmethod
     def register() -> None:
-        """Register the necessary items in the game character factory."""
+        """Register the necessary items in the transformation factory."""
 
 
 def import_module(name: str) -> ModuleInterface:

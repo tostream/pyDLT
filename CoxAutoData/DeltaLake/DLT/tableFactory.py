@@ -6,11 +6,11 @@ from pyspark.sql import dataframe
 from CoxAutoData.DeltaLake.DLT import loader
 from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
 
-""" using plug-in architecture to seprated tranformation and pipeline"""
+""" using plug-in architecture to separated tranformation and pipeline"""
 
-table_creation_funcs: Dict[str, Callable[..., deltaLiveTable]] = {}
+table_creation_funcs: Dict[str, Callable[..., Any]] = {}
 
-def register(table_name: str, creator_fn: Callable[..., deltaLiveTable]) -> None:
+def register(table_name: str, creator_fn: Callable[..., Any]) -> None:
     """Register a transformation."""
     table_creation_funcs[table_name] = creator_fn
 
@@ -24,38 +24,41 @@ def createTransform(arguments: Dict[str, Any]) -> deltaLiveTable:
         raise ValueError(f"unknown character type {transform!r}") from None
     return creator_func(transform)
 
-class deltaTables():
-    "Cox internal delta live table framework"
+def createExternalSource(arguments: Dict[str, Any]) -> Callable:
+    """get the python package retrieve data by customer python package"""
 
-    _rawTablesList = {}
-    _idealTablesList = {}
+    transform = arguments.pop("transformName")
+    initPara = arguments.pop("instantiation")
+    try:
+        creator_func = table_creation_funcs[transform]
+    except KeyError:
+        raise ValueError(f"unknown character type {transform!r}") from None
+    return creator_func(**initPara)
+
+def checkPackageExist(key: str) -> bool:
+    """verify a package has been registered"""
+    return key in table_creation_funcs
+
+def importModule(module: str):
+    """ loaded the transformation logic into the pipeline"""
+    if module is not None:
+        loader.import_module(module)
+
+class deltaTables():
+    """CoxPyDelta - Cox internal delta live table framework"""
 
     def __init__(self, CoxSpark, CoxDLT) -> None:
+        """expecting a spark session and DLT(databricks) class
+
+        Args:
+            CoxSpark (sparkSession): spark session 
+            CoxDLT (dlt): delta live table 
+        """
         self.CoxDLT = CoxDLT
         self.CoxSpark = CoxSpark
 
-    @property
-    def rawTablesList(self):
-        return self._rawTablesList
-    
-    @rawTablesList.setter
-    def rawTablesList(self, rawTablesList: Dict):
-        self._rawTablesList = rawTablesList
-
-    @property
-    def idealTablesList(self):
-        return self._idealTablesList
-    
-    @idealTablesList.setter
-    def idealTablesList(self, rawTablesList: Dict):
-        self._idealTablesList = rawTablesList
-
-    def importModule(self, module: str):
-        """ loaded the transformation logic into the pipeline"""
-        if module is not None:
-            loader.import_module(module)
-
     def praseArguments(self, arguments: Dict[str, Any]) -> Dict:
+        """Paraing the arguments list  """
         res = {}
         # todo: add checking/validation
         res['tableName'] = arguments.pop('tableName',None)
@@ -63,42 +66,105 @@ class deltaTables():
         res['sourceTableName'] = arguments.pop('sourceTableName',None)
         res['transformName'] = arguments.pop('transform',None)
         res['modules'] = arguments.pop('modules',None)
+        res['instantiation'] = arguments.pop('instantiation',{})
+        res['parameter'] = arguments.pop('parameter',{})
+        res['dataQuality'] = arguments.pop('dataQuality',{})
         return res
 
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
+        """determate source type of bronze table"""
         
-        para = self.praseArguments(arguments)
+        args = self.praseArguments(arguments)
+        return self.getStandRaw(args) if args['fileFormat'] else self.getCustomRaw(args)
         
-        sourceTablesName ={ "path":para['sourceTableName']}
-        return self.__generateTable(lambda x:x, para['tableName'],
-            self.CoxSpark.read.format(para['fileFormat']).load,sourceTablesName)
-            
+    def getCustomRaw(self, arguments: Dict[str, Any]) -> dataframe:
+        """ load bronze table by python package(using pyspark.sql.SparkSession.createDataFrame)"""
+        importModule(arguments['modules'])
+
+        loaderPara ={ "data":arguments['parameter']}
+        loader = createExternalSource(arguments)
+        transform = self.CoxSpark.createDataFrame
+
+        return self.__generateTable(
+            loader,
+            arguments['tableName'],
+            transform,
+            loaderPara,
+            arguments['dataQuality'],)
+
+    def getStandRaw(self, arguments: Dict[str, Any]) -> dataframe:
+        """using spark Generic Load/Save Functions"""
+        sourceTablesName ={ "path":arguments['sourceTableName']}
+        transform = self.CoxSpark.read.format(arguments['fileFormat']).load
+
+        return self.__generateTable(
+            lambda x:x,
+            arguments['tableName'],
+            transform,
+            sourceTablesName,
+            arguments['dataQuality'],)
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> dataframe:
+        """ transform and load silver tables"""
+        args = self.praseArguments(arguments)
         
-        para = self.praseArguments(arguments)
+        importModule(args['modules'])
+        sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
+        transform = createTransform(args['transformName'])
         
-        self.importModule(para['modules'])
-        sourceTablesName = {para['sourceTableName']:para['sourceTableName']}
-        transform = createTransform(para['transformName'])
-        #para = {sourceTablesName : self.CoxDLT.read(sourceTablesName)}
-        return self.__generateTable(self.CoxDLT.read, para['tableName'], transform.transform ,sourceTablesName)
+        return self.__generateTable(
+            self.CoxDLT.read,
+            args['tableName'],
+            transform,
+            sourceTablesName,
+            args['dataQuality'],)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
+        """ transform and load gold tables"""
 
-        para = self.praseArguments(arguments)
+        args = self.praseArguments(arguments)
         
-        self.importModule(para['modules'])
-        sourceTablesName = para['sourceTableName']
-        transform = createTransform(para['transformName'])
-        #sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
-        return self.__generateTable(self.CoxDLT.read, para['tableName'], transform.transform ,sourceTablesName)
+        importModule(args['modules'])
+        sourceTablesName = args['sourceTableName']
+        transform = createTransform(args['transformName'])
+        
+        return self.__generateTable(
+            self.CoxDLT.read, 
+            args['tableName'],
+            transform.transform,
+            sourceTablesName,
+            args['dataQuality'],)
 
-    def __generateTable(self, loader, tableName, transform, sourceTablesName) -> dataframe:
-        @self.CoxDLT.table(
-            name = tableName
-        )
+    def __generateTable(
+            self,
+            loader,
+            tableName,
+            transform, 
+            sourceTablesName, 
+            DQRules: Dict[str,Any] = {}
+        ):
+        """generate the delta live table format function"""
         def generate():
-            sourceTables = {k: loader(v) for k, v in sourceTablesName.items()}
+            sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
-    
+        executor = self.__generateDQFunc(DQRules)(generate)
+
+        return self.CoxDLT.table(name=tableName)(executor)
+
+    def __generateDQFunc(self,rules: Dict[str,list[Any]]) -> Callable:
+        """apply Data Quality rules
+        https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-expectations.html
+
+        Args:
+        rules (Dict[str,Any]): 
+            dictionary key is the DQ function(expect, expect_or_drop,etc)
+            Value is rules ['description','constraint']
+
+        Returns:
+            Callable: a function applied delta live table DQ function
+        """
+        for func, rule in rules.items():
+            DQfunc = getattr(self.CoxDLT, func)
+            return DQfunc(*rule)
+        return lambda x:x
+
