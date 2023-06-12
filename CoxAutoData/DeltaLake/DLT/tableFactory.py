@@ -69,6 +69,7 @@ class deltaTables():
         res['instantiation'] = arguments.pop('instantiation',{})
         res['parameter'] = arguments.pop('parameter',{})
         res['dataQuality'] = arguments.pop('dataQuality',{})
+        res['returnFormat'] = arguments.pop('returnFormat', None)
         return res
 
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
@@ -82,9 +83,10 @@ class deltaTables():
         importModule(arguments['modules'])
 
         loaderPara ={ "data":arguments['parameter']}
+        return_format = arguments.pop('returnFormat', None)
+        transform = self.CoxSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda x: x
         loader = createExternalSource(arguments)
-        transform = self.CoxSpark.createDataFrame
-
+        
         return self.__generateTable(
             loader,
             arguments['tableName'],
