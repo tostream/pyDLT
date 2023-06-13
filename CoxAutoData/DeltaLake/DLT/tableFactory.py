@@ -84,7 +84,7 @@ class deltaTables():
 
         loaderPara ={ "data":arguments['parameter']}
         return_format = arguments.pop('returnFormat', None)
-        transform = self.CoxSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda x: x.get('data',None)
+        transform = self.CoxSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda **x: x.get('data',None)
         loader = createExternalSource(arguments)
         
         return self.__generateTable(
