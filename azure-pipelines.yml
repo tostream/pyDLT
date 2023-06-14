@@ -37,6 +37,7 @@ steps:
     ArtifactName: 'CoxDLT'
     
 - task: AzureCLI@2
+  enabled: false
   inputs:
     azureSubscription: 'ProdSP'
     scriptType: 'bash'
