@@ -180,6 +180,9 @@ class deltaTables():
 
         importModule(args['modules'])
         action = createExternalSource(args)
-        action(spark=self.CoxSpark,dlt=self.CoxDLT,**args['parameter'])
+        param = args['parameter']
+        param['spark'] = self.CoxSpark
+        param['dlt'] = self.CoxDLT
+        action(**param)
 
 
