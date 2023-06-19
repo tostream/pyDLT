@@ -112,13 +112,14 @@ class deltaTables():
         
         importModule(args['modules'])
         sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
+        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}        
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
             self.CoxDLT.read,
             args['tableName'],
-            transform,
-            sourceTablesName,
+            transform.transform,
+            sourceTables,
             args['dataQuality'],)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
@@ -128,26 +129,27 @@ class deltaTables():
         
         importModule(args['modules'])
         sourceTablesName = args['sourceTableName']
+        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
             self.CoxDLT.read, 
             args['tableName'],
             transform.transform,
-            sourceTablesName,
+            sourceTables,
             args['dataQuality'],)
 
+    #sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
     def __generateTable(
             self,
             loader,
             tableName,
             transform, 
-            sourceTablesName, 
+            sourceTables, 
             DQRules: Dict[str,Any] = {}
         ):
         """generate the delta live table format function"""
         def generate():
-            sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
         executor = self.__generateDQFunc(DQRules)(generate)
 
@@ -169,4 +171,15 @@ class deltaTables():
             DQfunc = getattr(self.CoxDLT, func)
             return DQfunc(*rule)
         return lambda x:x
+
+
+    def execPostAction(self, arguments: Dict[str, Any]) -> None:
+        """execute post action (e.g. archive source files, post logic,etc )"""
+
+        args = self.praseArguments(arguments)
+
+        importModule(args['modules'])
+        action = createExternalSource(arguments)
+        action(spark=self.CoxSpark,dlt=self.CoxDLT,**args['parameter'])
+
 
