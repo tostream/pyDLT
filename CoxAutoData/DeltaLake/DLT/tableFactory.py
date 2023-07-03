@@ -69,6 +69,7 @@ class deltaTables():
         res['instantiation'] = arguments.pop('instantiation',{})
         res['parameter'] = arguments.pop('parameter',{})
         res['dataQuality'] = arguments.pop('dataQuality',{})
+        res['returnFormat'] = arguments.pop('returnFormat', None)
         return res
 
     def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
@@ -82,9 +83,10 @@ class deltaTables():
         importModule(arguments['modules'])
 
         loaderPara ={ "data":arguments['parameter']}
+        return_format = arguments.pop('returnFormat', None)
+        transform = self.CoxSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda **x: x.get('data',None)
         loader = createExternalSource(arguments)
-        transform = self.CoxSpark.createDataFrame
-
+        
         return self.__generateTable(
             loader,
             arguments['tableName'],
@@ -110,13 +112,14 @@ class deltaTables():
         
         importModule(args['modules'])
         sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
+        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}        
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
             self.CoxDLT.read,
             args['tableName'],
-            transform,
-            sourceTablesName,
+            transform.transform,
+            sourceTables,
             args['dataQuality'],)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
@@ -126,26 +129,27 @@ class deltaTables():
         
         importModule(args['modules'])
         sourceTablesName = args['sourceTableName']
+        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
             self.CoxDLT.read, 
             args['tableName'],
             transform.transform,
-            sourceTablesName,
+            sourceTables,
             args['dataQuality'],)
 
+    #sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
     def __generateTable(
             self,
             loader,
             tableName,
             transform, 
-            sourceTablesName, 
+            sourceTables, 
             DQRules: Dict[str,Any] = {}
         ):
         """generate the delta live table format function"""
         def generate():
-            sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
             return transform(**sourceTables)
         executor = self.__generateDQFunc(DQRules)(generate)
 
@@ -167,4 +171,18 @@ class deltaTables():
             DQfunc = getattr(self.CoxDLT, func)
             return DQfunc(*rule)
         return lambda x:x
+
+
+    def execPostAction(self, arguments: Dict[str, Any]) -> None:
+        """execute post action (e.g. archive source files, post logic,etc )"""
+
+        args = self.praseArguments(arguments)
+
+        importModule(args['modules'])
+        action = createExternalSource(args)
+        param = args['parameter']
+        param['spark'] = self.CoxSpark
+        param['dlt'] = self.CoxDLT
+        action(**param)
+
 
