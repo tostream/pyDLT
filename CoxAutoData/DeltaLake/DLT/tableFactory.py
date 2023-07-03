@@ -181,17 +181,3 @@ class deltaTables():
             return DQfunc(*rule)
         return lambda x:x
 
-
-    def execPostAction(self, arguments: Dict[str, Any]) -> None:
-        """execute post action (e.g. archive source files, post logic,etc )"""
-
-        args = self.praseArguments(arguments)
-
-        importModule(args['modules'])
-        action = createExternalSource(args)
-        param = args['parameter']
-        param['spark'] = self.CoxSpark
-        param['dlt'] = self.CoxDLT
-        action(param)
-
-
