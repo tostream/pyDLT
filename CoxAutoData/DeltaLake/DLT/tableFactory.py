@@ -109,7 +109,7 @@ class deltaTables():
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
 
         return self.__generateTable(
-            lambda x:x,
+            lambda **x:x,
             {'name':arguments['tableName']},
             transform,
             sourceTablesName,
