@@ -12,7 +12,7 @@ def read_pipenv_dependencies(fname):
 
 setup(
     name="CoxAutoData",
-    version="3.1.1b1",
+    version="3.1.1b2",
     packages=find_packages(),
     description='Cox Delta Lake package',
     entry_points={
