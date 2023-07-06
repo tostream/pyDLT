@@ -105,11 +105,12 @@ class deltaTables():
 
     def getStandRaw(self, arguments: Dict[str, Any]) -> DataFrame:
         """using spark Generic Load/Save Functions"""
-        sourceTablesName ={ "path":{ "path":arguments['sourceTableName']}}
+        sourceTablesName ={ "path":{ "data":arguments['sourceTableName']}}
+        #loader = lambda **x:x['data']
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
 
         return self.__generateTable(
-            lambda **x:x,
+            lambda **x:x['data'],
             {'name':arguments['tableName']},
             transform,
             sourceTablesName,
