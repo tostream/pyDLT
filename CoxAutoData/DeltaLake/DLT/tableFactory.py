@@ -159,7 +159,7 @@ class deltaTables():
         ):
         """generate the delta live table format function"""
         def generate():
-            sourceTables = {k: loader(*v) for k, v in source_tables_name.items()}
+            sourceTables = {k: loader(**v) for k, v in source_tables_name.items()}
             return transform(**sourceTables)
         executor = self.__generateDQFunc(DQRules)(generate)
 
