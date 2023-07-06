@@ -83,7 +83,7 @@ class deltaTables():
         """ load bronze table by python package(using pyspark.sql.SparkSession.createDataFrame)"""
         importModule(arguments['modules'])
 
-        loader = lambda **x:x,
+        loader = lambda x:x,
         return_format = arguments.pop('returnFormat', None)
         if return_format == 'pysprak_dataframe':
             transform = createExternalSource(arguments)
@@ -91,11 +91,7 @@ class deltaTables():
         else:
             transform = self.CoxSpark.createDataFrame
             loader_para = {'data': arguments['parameter']}
-        # loaderPara ={ "data":arguments['parameter']}
-        # return_format = arguments.pop('returnFormat', None)
-        # transform = self.CoxSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda **x: x.get('data',None)
-        # loader = createExternalSource(arguments)
-        
+
         return self.__generateTable(
             loader,
             arguments['tableName'],
@@ -105,12 +101,12 @@ class deltaTables():
 
     def getStandRaw(self, arguments: Dict[str, Any]) -> DataFrame:
         """using spark Generic Load/Save Functions"""
-        sourceTablesName ={ "path":{ "data":arguments['sourceTableName']}}
+        sourceTablesName ={ "path":arguments['sourceTableName']}
         #loader = lambda **x:x['data']
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
 
         return self.__generateTable(
-            lambda **x:x['data'],
+            lambda x:x,
             {'name':arguments['tableName']},
             transform,
             sourceTablesName,
@@ -154,15 +150,15 @@ class deltaTables():
             self,
             loader,
             table_name,
-            transform, 
-            source_tables_name, 
-            DQRules: Dict[str,Any] = {}
+            transform,
+            source_tables_name,
+            dq_rules: Dict[str,Any] = {}
         ):
         """generate the delta live table format function"""
         def generate():
-            sourceTables = {k: loader(**v) for k, v in source_tables_name.items()}
-            return transform(**sourceTables)
-        executor = self.__generateDQFunc(DQRules)(generate)
+            source_tables = {k: loader(v) for k, v in source_tables_name.items()}
+            return transform(**source_tables)
+        executor = self.__generateDQFunc(dq_rules)(generate)
 
         return self.CoxDLT.table(**table_name)(executor)
 
@@ -179,7 +175,7 @@ class deltaTables():
             Callable: a function applied delta live table DQ function
         """
         for func, rule in rules.items():
-            DQfunc = getattr(self.CoxDLT, func)
-            return DQfunc(*rule)
+            dq_func = getattr(self.CoxDLT, func)
+            return dq_func(*rule)
         return lambda x:x
 
