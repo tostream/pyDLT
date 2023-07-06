@@ -1,7 +1,7 @@
 
 from typing import Any, Callable, Dict, Optional
 
-from pyspark.sql import dataframe
+from pyspark.sql import DataFrame
 
 from CoxAutoData.DeltaLake.DLT import loader
 from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
@@ -73,13 +73,13 @@ class deltaTables():
         res['returnFormat'] = arguments.pop('returnFormat', None)
         return res
 
-    def getRawTables(self, arguments: Dict[str, Any]) -> dataframe:
+    def getRawTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """determate source type of bronze table"""
         
         args = self.praseArguments(arguments)
         return self.getStandRaw(args) if args['fileFormat'] else self.getCustomRaw(args)
         
-    def getCustomRaw(self, arguments: Dict[str, Any]) -> dataframe:
+    def getCustomRaw(self, arguments: Dict[str, Any]) -> DataFrame:
         """ load bronze table by python package(using pyspark.sql.SparkSession.createDataFrame)"""
         importModule(arguments['modules'])
 
@@ -103,7 +103,7 @@ class deltaTables():
             loader_para,
             arguments['dataQuality'],)
 
-    def getStandRaw(self, arguments: Dict[str, Any]) -> dataframe:
+    def getStandRaw(self, arguments: Dict[str, Any]) -> DataFrame:
         """using spark Generic Load/Save Functions"""
         sourceTablesName ={ "path":arguments['sourceTableName']}
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
@@ -115,13 +115,13 @@ class deltaTables():
             sourceTablesName,
             arguments['dataQuality'],)
 
-    def getIdealTables(self, arguments: Dict[str, Any]) -> dataframe:
+    def getIdealTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load silver tables"""
         args = self.praseArguments(arguments)
         
         importModule(args['modules'])
         sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
-        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}        
+        sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}        
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
@@ -131,14 +131,14 @@ class deltaTables():
             sourceTables,
             args['dataQuality'],)
 
-    def getBOTables(self, arguments: Dict[str, Any]) -> dataframe:
+    def getBOTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load gold tables"""
 
         args = self.praseArguments(arguments)
         
         importModule(args['modules'])
         sourceTablesName = args['sourceTableName']
-        sourceTables = {k: self.CoxDLT.read(*v) for k, v in sourceTablesName.items()}
+        sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
         transform = createTransform(args['transformName'])
         
         return self.__generateTable(
