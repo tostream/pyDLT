@@ -11,11 +11,26 @@ from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
 table_creation_funcs: Dict[str, Callable[..., Any]] = {}
 
 def register(table_name: str, creator_fn: Callable[..., Any]) -> None:
-    """Register a transformation."""
+    """Register a transformation.
+
+    Args:
+        table_name (str): name of the register table
+        creator_fn (Callable[..., Any]): Object of pyspark table transformation logic
+    """
     table_creation_funcs[table_name] = creator_fn
 
 def createTransform(arguments: Dict[str, Any]) -> deltaLiveTable:
-    """get the transformation logic"""
+    """_summary_ get the transformation logic
+
+    Args:
+        arguments (Dict[str, Any]): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        deltaLiveTable: _description_
+    """
 
     transform = arguments.pop("transform")
     try:
@@ -25,7 +40,18 @@ def createTransform(arguments: Dict[str, Any]) -> deltaLiveTable:
     return creator_func(transform)
 
 def createExternalSource(arguments: Dict[str, Any]) -> Callable:
-    """get the python package retrieve data by customer python package"""
+    """_summary_
+    get the python package retrieve data by customer python package
+
+    Args:
+        arguments (Dict[str, Any]): _description_
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        Callable: _description_
+    """
 
     transform = arguments.pop("transformName")
     initPara = arguments.pop("instantiation")
@@ -100,7 +126,15 @@ class deltaTables():
             arguments['dataQuality'],)
 
     def getStandRaw(self, arguments: Dict[str, Any]) -> DataFrame:
-        """using spark Generic Load/Save Functions"""
+        """_summary_ 
+            Using spark Generic Load/Save Functions
+            
+        Args:
+            arguments (Dict[str, Any]): _description_
+
+        Returns:
+            DataFrame: _description_
+        """
         sourceTablesName ={ "path":arguments['sourceTableName']}
         #loader = lambda **x:x['data']
         transform = self.CoxSpark.read.format(arguments['fileFormat']).load
@@ -169,6 +203,7 @@ class deltaTables():
         Args:
         rules (Dict[str,Any]): 
             dictionary key is the DQ function(expect, expect_or_drop,etc)
+
             Value is rules ['description','constraint']
 
         Returns:

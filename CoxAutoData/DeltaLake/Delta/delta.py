@@ -26,11 +26,12 @@ def table( **kwags: Any) -> Callable[...,Any]:
             spark = SparkSession.getActiveSession()
             table_name = table_conf.get('name', func.__name__)
             df_res = func(*args, **kwargs)
-            list(spark.conf.set(key, value) for key, value in table_conf.get('spark_conf',{}).items())
+            spark_conf = list(spark.conf.set(key, value) for key, value in table_conf.get('spark_conf',{}).items())
+            write_mode = table_conf.get('mode', "overwrite")
             DataJob = table_conf.get('DataJob', True)
             if DataJob:
                 path = table_conf.get('path', None)
-                df_writer = df_res.write
+                df_writer = df_res.write.mode(write_mode)
                 df_writer = df_writer.option('path', path) if path else df_writer
                 file_format = table_conf.get('file_format', 'delta')
                 if table_conf.get('schema', False):
