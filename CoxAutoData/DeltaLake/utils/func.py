@@ -10,7 +10,14 @@ def get_dbutils(spark: SparkSession) -> Optional[Type]:
     except ImportError:
         return None
 
+def get_sercet(dbutils: callable,scope: str, key:str ) -> Optional[str]:
+    if dbutils:
+        return dbutils.secrets.get(scope, key)
+    return None
 
+
+def get_adls_path(file_system: str,account_name: str, path:str ="" ) -> str:
+    return f"abfss://{file_system}@{account_name}.dfs.core.windows.net/{path}"
 
 def archive_files(*args: Any, **kwargs: Any) -> None:
     processed_files = kwargs.get("processed_files")
@@ -20,8 +27,11 @@ def archive_files(*args: Any, **kwargs: Any) -> None:
     archive_folder = f"archive/{curDateStr}/"
     # file_list = internal_storage.get_file_list(processed_files)
     file_list = internal_storage.get_file_list()
-    filter_name = lambda x : fnmatch.fnmatch(x['name'],processed_files)
-    filename_list = filter(filter_name,file_list)
+    def filter_logic(x):
+        return fnmatch.fnmatch(x['name'],f"*{processed_files}") \
+        and not fnmatch.fnmatch(x['name'],f"{internal_storage.get_directory()}archive*")
+    # filter_name = lambda x : fnmatch.fnmatch(x['name'],f"*{processed_files}")
+    filename_list = filter(filter_logic,file_list)
     for updated_file in filename_list:
         file_name = updated_file["name"]
         archive_file_name = file_name.replace(internal_storage.get_directory(),f"{archive_folder}")

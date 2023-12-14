@@ -1,7 +1,7 @@
 from typing import Any
 from pyspark.sql import SparkSession
 from CoxAutoData.DeltaLake.DLT import tableFactory
-from utils.func import archive_files
+from CoxAutoData.DeltaLake.utils.func import archive_files
 from . import delta
 
 def executor(*args: Any, **kwargs: Any) -> None:
@@ -18,5 +18,5 @@ def executor(*args: Any, **kwargs: Any) -> None:
             archive = i.pop('archive',False)
             delta_executor.getRawTables(i)
             if archive:
-                archive_files(archive)
+                archive_files(**archive)
             
