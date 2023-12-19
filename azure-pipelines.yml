@@ -6,55 +6,81 @@
 trigger:
 - master
 
-pool:
-  vmImage: ubuntu-latest
-strategy:
-  matrix:
-    Python310:
-      python.version: '3.10'
+variables:
+  - name: prSourceBranch
+    value: $(System.PullRequest.SourceBranch)
+  - name: prTargetBranch
+    value: $(System.PullRequest.TargetBranch)
 
-steps:
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '$(python.version)'
-  displayName: 'Use Python $(python.version)'
+stages:
+- stage: BuildPythonPackage
+  displayName: 'Build Python Packages'
+  jobs:
+  - job: BuildPackage
+    displayName: 'Build and Publish Python Package'
+    steps:
+    - checkout: self
+    - script: |
+        python -m pip install --upgrade pip
+        python -m pip install wheel twine keyring artifacts-keyring setuptools-scm setuptools
+        python -m pip install --upgrade build
+        python -m build
+      displayName: 'Build Python Package'
+    - task: CopyFiles@2
+      displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+      inputs:
+        TargetFolder: '$(build.artifactstagingdirectory)'
 
-- script: |
-    python -m pip install --upgrade pip
-    python -m pip install wheel twine
-    python setup.py sdist bdist_wheel
-  displayName: 'Install dependencies'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/dist'
+        ArtifactName: 'CoxAutoData '
 
+- stage: UploadArtifact
+  displayName: 'Upload Artifact'
+  dependsOn: BuildPythonPackage
+  condition: succeeded('BuildPythonPackage')
+  jobs:
+  - job: UploadToPyPI
+    displayName: 'Upload to PyPI'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    steps:
+    - checkout: self
+    - download: current
+      artifact: CoxAutoData
+    - task: TwineAuthenticate@1
+      inputs:
+        artifactFeed: 'python-cox-data-dev'
+    - script: |
+        python -m pip install --upgrade pip
+        python -m pip install wheel twine keyring artifacts-keyring setuptools-scm setuptools
+        python -m twine upload -r python-cox-data-dev --config-file $(PYPIRC_PATH) $(Pipeline.Workspace)/CoxAutoData/*.whl
+      displayName: 'Upload to PyPI'
+    pool:
+      vmImage: 'ubuntu-latest'
 
-- task: CopyFiles@2
-  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
-  inputs:
-    TargetFolder: '$(build.artifactstagingdirectory)'
+  - job: UploadToAzureStorage
+    displayName: 'Upload to Azure Storage'
+    condition: ne(variables['Build.SourceBranch'], 'refs/heads/main')
+    steps:
+    - checkout: self
+    - download: current
+      artifact: CoxAutoData
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)/dist'
-    ArtifactName: 'CoxDLT'
-    
-
-- task: TwineAuthenticate@1
-  inputs:
-    artifactFeed: 'python-cox-data-dev'
-- script: |
-    python -m twine upload -r python-cox-data-dev --config-file $(PYPIRC_PATH) dist/*.whl
-  displayName: 'Upload to artifact'
-
-- task: AzureCLI@2
-  enabled: false
-  inputs:
-    azureSubscription: 'ProdSP'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      az upgrade --yes -y --all
-      l=`curl ifconfig.me`
-      az storage account network-rule add --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
-      sleep 120
-      az storage blob upload-batch --destination deployments/deployments/pypi/dev/CoxDLT --source $(Build.ArtifactStagingDirectory)/dist/ --account-name coxautodsdeployments --auth-mode login --overwrite true --debug
-      sleep 120
-      az storage account network-rule remove --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
+    - task: AzureCLI@2
+      enabled: false
+      inputs:
+        azureSubscription: 'ProdSP'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az upgrade --yes -y --all
+          l=`curl ifconfig.me`
+          az storage account network-rule add --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
+          sleep 120
+          az storage blob upload-batch --destination deployments/deployments/pypi/dev/CoxAutoData --source $(Pipeline.Workspace)/CoxAutoData/ --account-name coxautodsdeployments --auth-mode login --overwrite true --debug
+          sleep 120
+          az storage account network-rule remove --resource-group "PRDDatabricksInfra" --account-name "coxautodsdeployments" --ip-address $l
+      displayName: 'Upload to Azure Storage'
+    pool:
+      vmImage: 'ubuntu-latest'
