@@ -9,7 +9,15 @@ class ModuleInterface:
 
 
 def import_module(name: str) -> ModuleInterface:
-    """Imports a module given a name."""
+    """_summary_
+    Imports a module given a name.
+
+    Args:
+        name (str): Module Name
+
+    Returns:
+        ModuleInterface: _description_
+    """
     return importlib.import_module(name)  # type: ignore
 
 
