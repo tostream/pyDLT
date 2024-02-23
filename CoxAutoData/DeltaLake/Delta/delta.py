@@ -25,7 +25,7 @@ def table( **kwags: Any) -> Callable[...,Any]:
     table_conf = kwags
     def save_table(func: Callable[...,DataFrame|DataFrameWriter] ) -> Callable[...,Any]:
         """store spark table
-
+ 
         Args:
             func (Callable[...,DataFrame|DataFrameWriter]): DataFrameWriter 
 
@@ -39,6 +39,8 @@ def table( **kwags: Any) -> Callable[...,Any]:
             list(spark.conf.set(key, value) for key, value in table_conf.pop('spark_conf',{}).items())
             temporary = table_conf.pop('temporary', False)
             database = table_conf.pop('database', False)
+            if not database:
+                database = getSparkCont('database')
             df_res: DataFrame = func(*args, **kwargs)
             if temporary:
                 df_res.createOrReplaceTempView(table_name)
@@ -52,6 +54,11 @@ def table( **kwags: Any) -> Callable[...,Any]:
                 df_writer(table_name)
         return wrapper()
     return save_table
+
+def getSparkCont(param) -> str|bool :
+    spark = SparkSession.getActiveSession()
+    return spark.conf.get(param,False)
+
 
 def praseArg(func: T, conf: dict)->T:
     for k,v in conf.items():
