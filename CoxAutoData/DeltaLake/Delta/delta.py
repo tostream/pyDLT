@@ -55,9 +55,9 @@ def table( **kwags: Any) -> Callable[...,Any]:
         return wrapper()
     return save_table
 
-def getSparkCont(param) -> str|bool :
+def getSparkCont(param) -> Optional[str] :
     spark = SparkSession.getActiveSession()
-    return spark.conf.get(param,False)
+    return spark.conf.get(param,None)
 
 
 def praseArg(func: T, conf: dict)->T:
