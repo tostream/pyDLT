@@ -141,7 +141,7 @@ class deltaTables():
 
         return self.__generateTable(
             lambda x:x,
-            {'name':arguments['tableName']},
+            arguments['tableName'],
             transform,
             sourceTablesName,
             arguments['dataQuality'],)
@@ -174,7 +174,7 @@ class deltaTables():
         
         return self.__generateTable(
             self.CoxDLT.read, 
-            args['tableName'],
+            {'name':args['tableName']},
             transform.transform,
             sourceTablesName,
             args['dataQuality'],)
