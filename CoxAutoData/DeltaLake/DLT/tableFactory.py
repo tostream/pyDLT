@@ -174,7 +174,7 @@ class deltaTables():
         
         return self.__generateTable(
             self.CoxDLT.read, 
-            {'name':args['tableName']},
+            args['tableName'],
             transform.transform,
             sourceTablesName,
             args['dataQuality'],)
@@ -187,7 +187,7 @@ class deltaTables():
             transform,
             source_tables_name,
             dq_rules: Dict[str,Any] = {}
-        ):
+        ): 
         """generate the delta live table format function"""
         def generate():
             source_tables = {k: loader(v) for k, v in source_tables_name.items()}
