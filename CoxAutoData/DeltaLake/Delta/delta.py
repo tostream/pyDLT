@@ -8,6 +8,12 @@ from CoxAutoData.DeltaLake.DLT import tableFactory
 #      the instaiation is going to suggest save or save as table
 
 T = TypeVar('T', bound=DataFrame|DataFrameWriter)
+# minic dlt.read
+# "Use dlt.read() or spark.table() to perform a complete read from a dataset defined in the same pipeline."
+def read(*arg: Any, **kwags: Any) -> Callable[...,Any]:
+    spark = SparkSession.getActiveSession()
+    return spark.table(*arg,**kwags)
+
 
 def table( **kwags: Any) -> Callable[...,Any]:
     """ store delta table for CoxPyDelta"""
