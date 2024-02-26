@@ -108,11 +108,11 @@ class deltaTables():
     def runFlow(self, arguments: Dict[str, Any],flowLayer: str ) -> DataFrame:
         match flowLayer.lower:
             case ["ideal"]:
-                self.getRawTables(arguments)
-            case ["bo"]:
                 self.getIdealTables(arguments)
-            case _:
+            case ["bo"]:
                 self.getBOTables(arguments)
+            case _:
+                self.getRawTables(arguments)
 
 
     def getRawTables(self, arguments: Dict[str, Any]) -> DataFrame:
