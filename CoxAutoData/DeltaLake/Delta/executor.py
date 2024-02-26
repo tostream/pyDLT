@@ -16,7 +16,8 @@ def executor(*args: Any, **kwargs: Any) -> None:
         delta_executor = tableFactory.deltaTables(spark, delta)
         for i in table_list:
             archive = i.pop('archive',False)
-            delta_executor.getRawTables(i)
+            flowLayer = i.pop('flowLayer',"raw")
+            delta_executor.runFlow(i,flowLayer)
             if archive:
                 archive_files(**archive)
             

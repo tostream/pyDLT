@@ -6,6 +6,12 @@ from pyspark.sql import DataFrame
 from CoxAutoData.DeltaLake.DLT import loader
 from CoxAutoData.DeltaLake.transforms.transform import deltaLiveTable
 
+from enum import Enum
+
+class FlowLayer(Enum):
+    RAW = "raw"
+    IDEAL = "ideal"
+    BO = "businessObject"
 """ using plug-in architecture to separated tranformation and pipeline"""
 
 table_creation_funcs: Dict[str, Callable[..., Any]] = {}
@@ -98,6 +104,16 @@ class deltaTables():
         res['dataQuality'] = arguments.pop('dataQuality',{})
         res['returnFormat'] = arguments.pop('returnFormat', None)
         return res
+    
+    def runFlow(self, arguments: Dict[str, Any],flowLayer: str ) -> DataFrame:
+        match flowLayer.lower:
+            case ["ideal"]:
+                self.getRawTables(arguments)
+            case ["bo"]:
+                self.getIdealTables(arguments)
+            case _:
+                self.getBOTables(arguments)
+
 
     def getRawTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """determate source type of bronze table"""
@@ -157,7 +173,7 @@ class deltaTables():
         
         return self.__generateTable(
             self.CoxDLT.read,
-            {'name':args['tableName']},
+            args['tableName'],
             transform.transform,
             sourceTablesName,
             args['dataQuality'],)
@@ -174,7 +190,7 @@ class deltaTables():
         
         return self.__generateTable(
             self.CoxDLT.read, 
-            {'name':args['tableName']},
+            args['tableName'],
             transform.transform,
             sourceTablesName,
             args['dataQuality'],)
