@@ -106,7 +106,7 @@ class deltaTables():
         return res
     
     def runFlow(self, arguments: Dict[str, Any],flowLayer: str ) -> DataFrame:
-        match flowLayer.lower:
+        match flowLayer.lower():
             case ["ideal"]:
                 self.getIdealTables(arguments)
             case ["bo"]:
