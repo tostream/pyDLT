@@ -3,6 +3,11 @@ from pyspark.sql import SparkSession
 from datetime import datetime,timedelta
 import fnmatch
 
+def getSparkCont(param,defaultVal=None,sparkSess=None) -> Optional[str] :
+    if not sparkSess:
+        sparkSess = SparkSession.getActiveSession()
+    return sparkSess.conf.get(param,defaultVal)
+
 def get_dbutils(spark: SparkSession) -> Optional[Type]:
     try:
         from pyspark.dbutils import DBUtils

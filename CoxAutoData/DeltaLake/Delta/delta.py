@@ -1,7 +1,8 @@
 from typing import Callable, Any, Optional, TypeVar, Generic
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 from functools import wraps, reduce
-from CoxAutoData.DeltaLake.DLT import tableFactory
+# from CoxAutoData.DeltaLake.DLT import tableFactory
+from CoxAutoData.DeltaLake.utils.func import getSparkCont
 #todo: passing dlt.tablefactory to execute the package by using
 #      sparksession and mocking dlt(DLT.table(name=tableName)(executor))
 #      we need a decorator expecting name=tablename then save the df to a location
@@ -46,7 +47,7 @@ def table( **kwags: Any) -> Callable[...,Any]:
             temporary = table_conf.pop('temporary', False)
             database = table_conf.pop('database', False)
             if not database:
-                database = getSparkCont('database')
+                database = getSparkCont('database',sparkSess=spark)
             df_res: DataFrame = func(*args, **kwargs)
             if temporary:
                 df_res.createOrReplaceTempView(table_name)
@@ -61,9 +62,6 @@ def table( **kwags: Any) -> Callable[...,Any]:
         return wrapper()
     return save_table
 
-def getSparkCont(param) -> Optional[str] :
-    spark = SparkSession.getActiveSession()
-    return spark.conf.get(param,None)
 
 
 def praseArg(func: T, conf: dict)->T:
