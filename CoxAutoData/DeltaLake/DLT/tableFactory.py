@@ -106,13 +106,12 @@ class deltaTables():
         return res
     
     def runFlow(self, arguments: Dict[str, Any],flowLayer: str ) -> DataFrame:
-        match flowLayer.lower():
-            case "ideal":
-                self.getIdealTables(arguments)
-            case "bo":
-                self.getBOTables(arguments)
-            case _:
-                self.getRawTables(arguments)
+        if flowLayer.lower() == "ideal":
+            self.getIdealTables(arguments)
+        elif flowLayer.lower() == "bo":
+            self.getBOTables(arguments)
+        else :
+            self.getRawTables(arguments)
 
 
     def getRawTables(self, arguments: Dict[str, Any]) -> DataFrame:
@@ -186,7 +185,7 @@ class deltaTables():
         importModule(args['modules'])
         sourceTablesName = args['sourceTableName']
         #sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
-        transform = createTransform(args['transformName'])
+        transform = createTransform(args[ 'transformName'])
         
         return self.__generateTable(
             self.CoxDLT.read, 
