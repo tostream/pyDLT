@@ -66,7 +66,12 @@ def table( **kwags: Any) -> Callable[...,Any]:
 
 def praseArg(func: T, conf: dict)->T:
     for k,v in conf.items():
-        func = addAction(func,k,*v)
+        if type(v) == dict:
+            func = addAction(func,k,**v)
+        elif type(v) == list:
+            func = addAction(func,k,*v)
+        else:
+            func = addAction(func,k,v)
     return func
 
 def addAction(func: T, option:str,*arg:Any,**kwargg:Any) -> T:
