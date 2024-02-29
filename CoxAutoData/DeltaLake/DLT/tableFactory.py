@@ -163,11 +163,11 @@ class deltaTables():
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load silver tables"""
-        return self._generateTable(arguments: Dict[str, Any])
+        return self._generateTable(arguments)
 
     def getBOTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load gold tables"""
-        return self._generateTable(arguments: Dict[str, Any])
+        return self._generateTable(arguments)
 
     def _generateTable(self, arguments: Dict[str, Any]) -> DataFrame:
         args = self.praseArguments(arguments)
