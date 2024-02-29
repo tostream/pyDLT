@@ -8,6 +8,7 @@ def executor(*args: Any, **kwargs: Any) -> None:
     """ cox delta lake executor"""
     table_list = kwargs.get('tables',None)
     package_list = kwargs.get('packages',[])
+    flowLayer = kwargs.get('flowLayer')
     if table_list:
         list(map(tableFactory.importModule,package_list))
         flow = tableFactory.importModule('CoxFlowDLT.flow')
@@ -17,8 +18,8 @@ def executor(*args: Any, **kwargs: Any) -> None:
         delta_executor = tableFactory.deltaTables(spark, delta)
         for i in table_list:
             archive = i.pop('archive',False)
-            flowLayer = i.pop('flowLayer',"raw")
-            delta_executor.runFlow(i,flowLayer)
+            runFlowLayer = i.pop('flowLayer',flowLayer)
+            delta_executor.runFlow(i,runFlowLayer)
             if archive:
                 archive_files(**archive)
 

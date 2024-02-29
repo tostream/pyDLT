@@ -1,1 +1,2 @@
-__all__ = ['delta']
+__all__ = ['delta','executor']
+

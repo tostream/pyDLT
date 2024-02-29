@@ -8,6 +8,9 @@ def main():
     parser.add_argument('-t', '--tables', type=str,
                         help='name of table list declared in CoxFlowDLT.flow')
     parser.add_argument('-p','--packages', action='append', help='Python packages of pipelines definition')
+    parser.add_argument('-f', '--flow', type=str, metavar='', required=False, nargs='?',
+                    choices=['raw', 'ideal', 'bo'], default='raw', const='raw',
+                    help='[raw | ideal | bo] : optional. The default value is raw.')
     args = parser.parse_args()
     arguments = args.__dict__
     executor(**arguments)

@@ -8,6 +8,11 @@ from CoxAutoData.DeltaLake.utils.func import getSparkCont
 #      we need a decorator expecting name=tablename then save the df to a location
 #      the instaiation is going to suggest save or save as table
 
+default_conf=[
+    [["coxPyDelta.delta.mergeSchema",""], lambda val: {"option":["mergeSchema", val]}, True ],
+    [["coxPyDelta.delta.writeMode",""], lambda val: {"mode": val}, "overwrite"],
+]
+
 T = TypeVar('T', bound=DataFrame|DataFrameWriter)
 # minic dlt.read
 # "Use dlt.read() or spark.table() to perform a complete read from a dataset defined in the same pipeline."
@@ -52,7 +57,8 @@ def table( **kwags: Any) -> Callable[...,Any]:
             if temporary:
                 df_res.createOrReplaceTempView(table_name)
             else:
-                df_writer = praseArg(df_res.write,table_conf)
+                df_writer = parseDefaultArg(df_res.write)
+                df_writer = praseArg(df_writer,table_conf)
                 if database:
                     df_writer = df_writer.saveAsTable
                     table_name = f"{database}.{table_name}"
@@ -62,6 +68,13 @@ def table( **kwags: Any) -> Callable[...,Any]:
         return wrapper()
     return save_table
 
+def parseDefaultArg(func: T):
+    for conf in default_conf:
+        val = getSparkCont(*conf[0])
+        if not val: val = conf[2]
+        argFunc = conf[1]
+        func = praseArg(func,argFunc(val))
+    return func
 
 
 def praseArg(func: T, conf: dict)->T:
@@ -78,18 +91,4 @@ def addAction(func: T, option:str,*arg:Any,**kwargg:Any) -> T:
     func = getattr(func,option)
     return func(*arg,**kwargg)
 
-class CoxDelta:
-    def __init__(self, spark: SparkSession) -> None:
-        self.spark = spark
-        self.table_name = ''
-        self.format = 'delta'
-
-    def table(self, name: str) -> Callable[...,Any]:
-        """ todo """
-        self.table_name = name
-        return self.save_table
-
-    def save_table(self, df: DataFrame) -> None:
-        """ todo """
-        df.write.mode("overwrite").format(self.format).saveAsTable(self.table_name)
 
