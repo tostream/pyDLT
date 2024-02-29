@@ -180,10 +180,10 @@ class deltaTables():
             sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
                 
         transform = createTransform(args['transformName'])
-        if type(args['sourceTableName']) == dict:
-            table_name = args['sourceTableName']
+        if type(args['tableName']) == dict:
+            table_name = args['tableName']
         else:
-            table_name = {"name":args['sourceTableName']}
+            table_name = {"name":args['tableName']}
         return self.__generateTable(
             self.CoxDLT.read,
             table_name,

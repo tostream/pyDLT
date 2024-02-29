@@ -1,3 +1,5 @@
+
+import logging
 from typing import Any
 from pyspark.sql import SparkSession
 from CoxAutoData.DeltaLake.DLT import tableFactory
@@ -10,6 +12,7 @@ def executor(*args: Any, **kwargs: Any) -> None:
     package_list = kwargs.get('packages',[])
     flowLayer = kwargs.get('flow')
     if table_list:
+        logging.info(f"executing: table list : {table_list}, modules: {package_list}, layer: {flowLayer} ")
         list(map(tableFactory.importModule,package_list))
         flow = tableFactory.importModule('CoxFlowDLT.flow')
         table_list = getattr(flow, table_list)
@@ -19,6 +22,7 @@ def executor(*args: Any, **kwargs: Any) -> None:
         for i in table_list:
             archive = i.pop('archive',False)
             runFlowLayer = i.pop('flowLayer',flowLayer)
+            logging.info(f"executing: table  : {i.get("tableName")}, modules: {i.get("transform")}, layer: {runFlowLayer} ")
             delta_executor.runFlow(i,runFlowLayer)
             if archive:
                 archive_files(**archive)
