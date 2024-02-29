@@ -22,7 +22,7 @@ def executor(*args: Any, **kwargs: Any) -> None:
         for i in table_list:
             archive = i.pop('archive',False)
             runFlowLayer = i.pop('flowLayer',flowLayer)
-            logging.info(f"executing: table  : {i.get("tableName")}, modules: {i.get("transform")}, layer: {runFlowLayer} ")
+            # logging.info(f"executing: table  : {i.get("tableName")} , modules: {i.get("transform")}, layer: {runFlowLayer} ")
             delta_executor.runFlow(i,runFlowLayer)
             if archive:
                 archive_files(**archive)
