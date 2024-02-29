@@ -163,38 +163,34 @@ class deltaTables():
 
     def getIdealTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load silver tables"""
-        args = self.praseArguments(arguments)
-        
-        importModule(args['modules'])
-        sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
-        #sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}        
-        transform = createTransform(args['transformName'])
-        
-        return self.__generateTable(
-            self.CoxDLT.read,
-            args['tableName'],
-            transform.transform,
-            sourceTablesName,
-            args['dataQuality'],)
+        return self._generateTable(arguments: Dict[str, Any])
 
     def getBOTables(self, arguments: Dict[str, Any]) -> DataFrame:
         """ transform and load gold tables"""
+        return self._generateTable(arguments: Dict[str, Any])
 
+    def _generateTable(self, arguments: Dict[str, Any]) -> DataFrame:
         args = self.praseArguments(arguments)
         
         importModule(args['modules'])
-        sourceTablesName = args['sourceTableName']
-        #sourceTables = {k: self.CoxDLT.read(v) for k, v in sourceTablesName.items()}
-        transform = createTransform(args[ 'transformName'])
         
+        if type(args['sourceTableName']) == dict:
+            sourceTablesName = args['sourceTableName']
+        else:
+            sourceTablesName = {args['sourceTableName']:args['sourceTableName']}
+                
+        transform = createTransform(args['transformName'])
+        if type(args['sourceTableName']) == dict:
+            table_name = args['sourceTableName']
+        else:
+            table_name = {"name":args['sourceTableName']}
         return self.__generateTable(
-            self.CoxDLT.read, 
-            args['tableName'],
+            self.CoxDLT.read,
+            table_name,
             transform.transform,
             sourceTablesName,
             args['dataQuality'],)
 
-    #sourceTables = {k: loader(*v) for k, v in sourceTablesName.items()}
     def __generateTable(
             self,
             loader,

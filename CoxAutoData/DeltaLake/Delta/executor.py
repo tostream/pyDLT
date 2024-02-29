@@ -25,8 +25,13 @@ def executor(*args: Any, **kwargs: Any) -> None:
 
 def setDatabase(spark: SparkSession) -> None:
     catalog = getSparkCont("catalog", sparkSess=spark)
+    spConf = []
     if catalog:
         spark.sql(f"use catalog {catalog}")
+        spConf.append(catalog)
     database = getSparkCont("database", sparkSess=spark)
     if database:
         spark.sql(f"use schema {database}")
+        spConf.append(database)
+    if len(spConf)>0:
+        spark.conf.set("database",".".join(spConf))
