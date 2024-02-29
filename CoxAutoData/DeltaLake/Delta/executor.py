@@ -8,7 +8,7 @@ def executor(*args: Any, **kwargs: Any) -> None:
     """ cox delta lake executor"""
     table_list = kwargs.get('tables',None)
     package_list = kwargs.get('packages',[])
-    flowLayer = kwargs.get('flowLayer')
+    flowLayer = kwargs.get('flow')
     if table_list:
         list(map(tableFactory.importModule,package_list))
         flow = tableFactory.importModule('CoxFlowDLT.flow')
