@@ -1,3 +1,4 @@
+
 from typing import Callable, Any, TypeVar
 from pyspark.sql import SparkSession, DataFrame, DataFrameWriter
 from functools import wraps
@@ -67,8 +68,6 @@ def table( **kwags: Any) -> Callable[...,Any]:
                 df_writer(table_name)
         return wrapper()
     return save_table
-
-
 
 def parseDefaultArg(func: T) -> T:
     for conf in default_conf:
