@@ -11,16 +11,11 @@ def read_pipenv_dependencies(fname):
         return [dependency for dependency in lockjson.get('default')]
 
 setup(
-    # name="CoxAutoData",
-    # version="3.3.5",
-    use_scm_version={
-        'version_scheme': 'post-release',
-        'local_scheme': 'node-and-date',
-        "root": ".",
-    },
+    name="DeltaPySpark",
+    version="3.1.0",
     packages=find_packages(),
-    description='Cox Delta Lake package',
+    description='Delta Lake package',
     entry_points={
-        'group_1': 'run=CoxAutoData.__main__:main'
+        'group_1': 'run=DeltaPySpark.__main__:main'
     },
 )
