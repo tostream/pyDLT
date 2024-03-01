@@ -111,6 +111,16 @@ class deltaTables():
         return self.__generateTable(
             # lambda x:x,
             {'name':arguments['tableName']},
+        #loader = lambda **x:x['data']
+        transform = self.CoxSpark.read.format(arguments['fileFormat']).load
+        if type(arguments['tableName']) == dict:
+            table_name = arguments['tableName']
+        else:
+            table_name = {"name":arguments['tableName']}
+
+        return self.__generateTable(
+            lambda x:x,
+            table_name,
             transform,
             sourceTablesName,
             arguments['dataQuality'],)
