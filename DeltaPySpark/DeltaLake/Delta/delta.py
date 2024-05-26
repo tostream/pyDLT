@@ -1,11 +1,16 @@
-from typing import Callable, Any, Optional
+from typing import Callable, Any
+from functools import wraps
 from pyspark.sql import SparkSession, DataFrame
-from functools import wraps, reduce
-from DeltaPySpark.DeltaLake.DLT import tableFactory
+from DeltaPySpark.DeltaLake.Delta.deltaTable import default_conf
+from DeltaPySpark.DeltaLake.utils.func import get_spark_conf, praseArg, set_spark_conf,parse_default_arg
+
 #todo: passing dlt.tablefactory to execute the package by using
 #      sparksession and mocking dlt(DLT.table(name=tableName)(executor))
 #      we need a decorator expecting name=tablename then save the df to a location
 #      the instaiation is going to suggest save or save as table
+def read(*arg: Any, **kwags: Any) -> Callable[...,Any]:
+    spark = SparkSession.getActiveSession()
+    return spark.table(*arg,**kwags)
 
 def table( **kwags: Any) -> Callable[...,Any]:
     """ store delta table for PyDelta"""
@@ -22,23 +27,28 @@ def table( **kwags: Any) -> Callable[...,Any]:
     table_conf = kwags
     def save_table(func: Callable[...,DataFrame] ) -> Callable[...,Any]:
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> None:
             spark = SparkSession.getActiveSession()
-            table_name = table_conf.get('name', func.__name__)
-            df_res = func(*args, **kwargs)
-            list(spark.conf.set(key, value) for key, value in table_conf.get('spark_conf',{}).items())
-            DataJob = table_conf.get('DataJob', True)
-            if DataJob:
-                path = table_conf.get('path', None)
-                df_writer = df_res.write
-                df_writer = df_writer.option('path', path) if path else df_writer
-                file_format = table_conf.get('file_format', 'delta')
-                if table_conf.get('schema', False):
-                    df_writer = df_writer.format(file_format).saveAsTable
-                    table_name = f"{table_conf.get('schema')}.{table_name}"
+            table_name = table_conf.pop('name', func.__name__)
+            set_spark_conf(table_conf.pop('spark_conf',{}))
+            # list(spark.conf.set(key, value) for key, value in table_conf.pop('spark_conf',{}).items())
+            temporary = table_conf.pop('temporary', False)
+            database = table_conf.pop('schema', False)
+            if not database:
+                database = table_conf.pop('database', False)
+            if not database:
+                database = get_spark_conf('schema',sparkSess=spark)
+            df_res: DataFrame = func(*args, **kwargs)
+            if temporary:
+                df_res.createOrReplaceTempView(table_name)
+            else:
+                df_writer = parse_default_arg(df_res.write,default_conf)
+                df_writer = praseArg(df_writer,table_conf)
+                if database:
+                    df_writer = df_writer.saveAsTable
+                    table_name = f"{database}.{table_name}"
                 else:
-                    df_writer = df_writer.format(file_format).save
-
+                    df_writer = df_writer.save
                 df_writer(table_name)
         return wrapper()
     return save_table
