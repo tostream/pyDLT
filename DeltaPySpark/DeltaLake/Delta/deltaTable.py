@@ -1,6 +1,10 @@
 from typing import Optional
 from pyspark.sql import SparkSession
 
+default_conf = [
+    [["delta.mergeSchema",""], lambda val: {"option":["mergeSchema", val]}, True ],
+    [["delta.writeMode",""], lambda val: {"mode": val}, "overwrite"],
+]
 
 class deltaTable:
     """ delta lake interputer"""

@@ -91,10 +91,6 @@ class deltaTables():
         else:
             transform = self.spark.createDataFrame
             loader_para = {'data': arguments['parameter']}
-        # loaderPara ={ "data":arguments['parameter']}
-        # return_format = arguments.pop('returnFormat', None)
-        # transform = self.DeltaPySparkSpark.createDataFrame if return_format != 'pysprak_dataframe' else lambda **x: x.get('data',None)
-        # loader = createExternalSource(arguments)
         
         return self.__generateTable(
             # loader,
@@ -112,7 +108,7 @@ class deltaTables():
             # lambda x:x,
             {'name':arguments['tableName']},
         #loader = lambda **x:x['data']
-        transform = self.CoxSpark.read.format(arguments['fileFormat']).load
+        transform = self.spark.read.format(arguments['fileFormat']).load
         if type(arguments['tableName']) == dict:
             table_name = arguments['tableName']
         else:
